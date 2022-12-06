@@ -1,5 +1,4 @@
 const path = require('path');
-const {v4} = require("uuid");
 const {GridFSBucket} = require('mongodb');
 const _ = require('lodash');
 
@@ -16,9 +15,9 @@ class GridFsStorageService {
   createFile(file) {
     return new Promise((resolve, reject) => {
       try {
-        const uploadStreamOpts = { contentType: file.mimeType };
+        const uploadStreamOpts = { contentType: file.mimetype, metadata: { encoding: file.encoding, originalname: file.originalname  } };
         const {ext, name} = path.parse(file.originalname);
-        const generatedFileName = `${v4()}-${_.snakeCase(name)}${ext || 'unknown'}`;
+        const generatedFileName = `${Date.now()}-${_.snakeCase(name)}${ext || 'unknown'}`;
         const uploadStream = this.bucket.openUploadStream(generatedFileName, uploadStreamOpts)
         uploadStream.once('error', (e) => reject(e));
         uploadStream.once('finish', uploadedFile => resolve(uploadedFile));

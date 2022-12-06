@@ -15,6 +15,7 @@ async function main() {
   try {
     await client.connect();
     const db = client.db(dbName);
+    const fsFiles = db.collection('fs.files');
 
     const app = express();
     app.use(cors());
@@ -38,7 +39,12 @@ async function main() {
       }
     }).any();
     app.post('/api', uploadFileHandler, (req, res) => res.send({data: req.__uploadedFileName }));
-    app.get('/api/:fileName', async (req, res, next) => (await gridFs.getFile(req.params.fileName)).on('error', next).pipe(res));
+    app.get('/api/:fileName', async (req, res, next) => {
+      const fileInfo = await fsFiles.findOne({filename: req.params.fileName}, { contentType: 1, uploadDate:1 , metadata: 1 })
+      const file = await gridFs.getFile(req.params.fileName)
+      res.setHeader('Content-Type', fileInfo.contentType)
+      file.on('error', next).pipe(res)
+    });
     app.delete('/api/:fileName', async (req, res) => {
       await gridFs.deleteFile(req.params.fileName);
       res.send('OK');
