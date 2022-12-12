@@ -6,6 +6,10 @@ const {MongoClient} = require('mongodb');
 const GridFsStorageService = require('./GridFsStorageService');
 require('dotenv').config();
 
+process.on('uncaughtException', function(err) {
+  console.error((err && err.stack) ? err.stack : err);
+});
+
 const url = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const dbName = process.env.DB_NAME || 'orca-fs';
 
