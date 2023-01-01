@@ -48,6 +48,7 @@ async function main() {
       const file = await gridFs.getFile(req.params.fileName)
       if (fileInfo.contentType)
         res.setHeader('Content-Type', fileInfo.contentType)
+      res.setHeader('Cache-Control', 'max-age=315360000')
       file.on('error', next).pipe(res)
     });
     app.delete('/api/:fileName', async (req, res) => {
