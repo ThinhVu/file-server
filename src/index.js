@@ -42,6 +42,7 @@ async function main() {
         _removeFile: () => { }
       }
     }).any();
+    app.get('/', (req, res) => res.send('FS'))
     app.post('/api', uploadFileHandler, (req, res) => res.send({data: req.__uploadedFileName }));
     app.get('/api/:fileName', async (req, res, next) => {
       const fileInfo = await fsFiles.findOne({filename: req.params.fileName}, { contentType: 1, uploadDate:1 , metadata: 1 })
