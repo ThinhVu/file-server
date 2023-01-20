@@ -1,4 +1,5 @@
-const path = require('path');
+const forkStream = require('./forkStream');
+const sharp = require('sharp');
 const {GridFSBucket} = require('mongodb');
 const _ = require('lodash');
 
@@ -15,13 +16,61 @@ class GridFsStorageService {
   createFile(file) {
     return new Promise((resolve, reject) => {
       try {
-        const uploadStreamOpts = { contentType: file.mimetype, metadata: { encoding: file.encoding, originalname: file.originalname  } };
-        const {ext, name} = path.parse(file.originalname);
-        const generatedFileName = `${Date.now()}-${_.snakeCase(name)}${ext || 'unknown'}`;
-        const uploadStream = this.bucket.openUploadStream(generatedFileName, uploadStreamOpts)
-        uploadStream.once('error', (e) => reject(e));
-        uploadStream.once('finish', uploadedFile => resolve(uploadedFile));
-        file.stream.pipe(uploadStream);
+        const fileName = `${Date.now()}-${_.random(1000, 9999, false)}`;
+
+        if (file.mimetype.startsWith('image')) {
+          console.log('[GridFsStorageService] image file detected, creating thumbnail...')
+          const thumbnailFileName = `${fileName}-thumbnail`;
+          let uploadedFile, uploadedThumbnailFile;
+          let onFileUploadedFire = 0;
+          const onFileUploaded = () => {
+            onFileUploadedFire++;
+            if (uploadedFile && uploadedThumbnailFile || onFileUploadedFire === 2) {
+              resolve(uploadedFile)
+            }
+          }
+
+          const thumbnailUploadStream = this.bucket.openUploadStream(thumbnailFileName, {contentType: file.mimetype, metadata: {encoding: file.encoding}});
+          thumbnailUploadStream.once('error', e => console.error(e, '[GridFsStorageService] error'))
+          thumbnailUploadStream.once('finish', result => {
+            uploadedThumbnailFile = result;
+            onFileUploaded();
+          })
+
+          const uploadStream = this.bucket.openUploadStream(fileName, {
+            contentType: file.mimetype,
+            metadata: {
+              encoding: file.encoding,
+              originalname: file.originalname,
+              thumbnail: thumbnailFileName
+            }
+          });
+          uploadStream.once('error', e => {
+            console.error(e, 'upload stream error');
+            reject(e)
+          });
+          uploadStream.once('finish', result => {
+            uploadedFile = result;
+            onFileUploaded();
+          });
+          const thumbnailWriteStream = sharp().resize(100).jpeg();
+          thumbnailWriteStream.pipe(thumbnailUploadStream);
+          file.stream.pipe(forkStream([thumbnailWriteStream])).pipe(uploadStream);
+        } else {
+          const uploadStream = this.bucket.openUploadStream(fileName, {
+            contentType: file.mimetype,
+            metadata: {
+              encoding: file.encoding,
+              originalname: file.originalname,
+            }
+          });
+          uploadStream.once('error', e => {
+            console.error(e, 'upload stream error');
+            reject(e)
+          });
+          uploadStream.once('finish', uploadedFile => resolve(uploadedFile));
+          file.stream.pipe(uploadStream);
+        }
       } catch (e) {
         reject(e);
       }
@@ -33,12 +82,12 @@ class GridFsStorageService {
   }
 
   async getEtag(fileName) {
-    const fileInfo = await this.db.collection(this.fileCollectionName).findOne({ filename: fileName })
+    const fileInfo = await this.db.collection(this.fileCollectionName).findOne({filename: fileName})
     return fileInfo.md5
   }
 
   async deleteFile(fileName) {
-    const fileInfo = await this.db.collection(this.fileCollectionName).findOne({ filename: fileName });
+    const fileInfo = await this.db.collection(this.fileCollectionName).findOne({filename: fileName});
     return this.bucket.delete(fileInfo._id);
   }
 }
