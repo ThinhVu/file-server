@@ -52,7 +52,11 @@ async function main() {
     app.get('/api/:fileName', async (req, res, next) => {
       const fileInfo = await fsFiles.findOne({filename: req.params.fileName})
       const file = await gridFs.getFile(req.params.fileName)
-      if (fileInfo.contentType)
+      if (!file) {
+        res.status(404).end()
+        return
+      }
+      if (fileInfo && fileInfo.contentType)
         res.setHeader('Content-Type', fileInfo.contentType)
       res.setHeader('Cache-Control', 'max-age=315360000')
       file.on('error', next).pipe(res)
