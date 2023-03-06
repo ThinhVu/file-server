@@ -4,7 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const {MongoClient} = require('mongodb');
 const GridFsStorageService = require('./GridFsStorageService');
-const sharp = require('sharp');
+const fs = require('fs');
 require('dotenv').config();
 
 process.on('uncaughtException', function (err) {
@@ -47,18 +47,35 @@ async function main() {
     const multerOptions = {storage: multerStorageEngine}
     const uploadFileHandler = multer(multerOptions).any();
     app.get('/', (req, res) => res.send('FS'))
+    app.get(`/${process.env.uploadPage}`, (req, res) => {
+      const content = fs.readFileSync('./src/upload.html')
+      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+      res.send(content);
+    })
     app.post('/api', uploadFileHandler, (req, res) => res.send({data: req.__uploadedFileName}));
     app.post('/api/v2/', uploadFileHandler, (req, res) => res.send(req.__uploadedFile));
     app.get('/api/:fileName', async (req, res, next) => {
       const fileInfo = await fsFiles.findOne({filename: req.params.fileName})
-      const file = await gridFs.getFile(req.params.fileName)
+      if (fileInfo && fileInfo.contentType)
+        res.setHeader('Content-Type', fileInfo.contentType);
+      res.setHeader('Cache-Control', 'max-age=315360000');
+      let file;
+      if (req.headers.range) {
+        const [start, end] = (req.headers.range.split('=')[1]).split('-')
+        const range = {}
+        if (start) range.start = +start
+        if (end) {
+          range.end = +end;
+          res.status(206)
+        }
+        file = await gridFs.getFile(req.params.fileName, range)
+      } else {
+        file = await gridFs.getFile(req.params.fileName)
+      }
       if (!file) {
         res.status(404).end()
         return
       }
-      if (fileInfo && fileInfo.contentType)
-        res.setHeader('Content-Type', fileInfo.contentType)
-      res.setHeader('Cache-Control', 'max-age=315360000')
       file.on('error', next).pipe(res)
     });
     app.delete('/api/:fileName', async (req, res) => {

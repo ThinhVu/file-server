@@ -2,6 +2,7 @@ const forkStream = require('./forkStream');
 const sharp = require('sharp');
 const {GridFSBucket} = require('mongodb');
 const _ = require('lodash');
+const path = require('path');
 
 class GridFsStorageService {
   constructor(options) {
@@ -16,7 +17,8 @@ class GridFsStorageService {
   createFile(file) {
     return new Promise((resolve, reject) => {
       try {
-        const fileName = `${Date.now()}-${_.random(1000, 9999, false)}`;
+        const ext = path.extname(file.originalname);
+        const fileName = `${Date.now()}-${_.random(1000, 9999, false)}${ext}`;
 
         if (file.mimetype.startsWith('image')) {
           console.log('[GridFsStorageService] image file detected, creating thumbnail...')
@@ -77,8 +79,8 @@ class GridFsStorageService {
     })
   }
 
-  async getFile(fileName) {
-    return this.bucket.openDownloadStreamByName(fileName);
+  async getFile(fileName, option) {
+    return this.bucket.openDownloadStreamByName(fileName, option);
   }
 
   async getEtag(fileName) {
