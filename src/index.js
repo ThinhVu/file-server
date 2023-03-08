@@ -47,7 +47,7 @@ async function main() {
     const multerOptions = {storage: multerStorageEngine}
     const uploadFileHandler = multer(multerOptions).any();
     app.get('/', (req, res) => res.send('FS'))
-    app.get(`/${process.env.uploadPage}`, (req, res) => {
+    app.get(`/${process.env.UPLOAD_PAGE}`, (req, res) => {
       const content = fs.readFileSync('./src/upload.html')
       res.setHeader('Content-Type', 'text/html; charset=UTF-8');
       res.send(content);

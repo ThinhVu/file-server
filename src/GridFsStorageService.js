@@ -18,11 +18,12 @@ class GridFsStorageService {
     return new Promise((resolve, reject) => {
       try {
         const ext = path.extname(file.originalname);
-        const fileName = `${Date.now()}-${_.random(1000, 9999, false)}${ext}`;
+        const fileName = `${Date.now()}-${_.random(1000, 9999, false)}`;
+        const fullFileName = `${fileName}${ext}`
 
         if (file.mimetype.startsWith('image')) {
           console.log('[GridFsStorageService] image file detected, creating thumbnail...')
-          const thumbnailFileName = `${fileName}-thumbnail`;
+          const thumbnailFileName = `${fileName}-thumbnail${ext}`;
           let uploadedFile, uploadedThumbnailFile;
           let onFileUploadedFire = 0;
           const onFileUploaded = () => {
@@ -39,7 +40,7 @@ class GridFsStorageService {
             onFileUploaded();
           })
 
-          const uploadStream = this.bucket.openUploadStream(fileName, {
+          const uploadStream = this.bucket.openUploadStream(fullFileName, {
             contentType: file.mimetype,
             metadata: {
               encoding: file.encoding,
@@ -59,7 +60,7 @@ class GridFsStorageService {
           thumbnailWriteStream.pipe(thumbnailUploadStream);
           file.stream.pipe(forkStream([thumbnailWriteStream])).pipe(uploadStream);
         } else {
-          const uploadStream = this.bucket.openUploadStream(fileName, {
+          const uploadStream = this.bucket.openUploadStream(fullFileName, {
             contentType: file.mimetype,
             metadata: {
               encoding: file.encoding,
