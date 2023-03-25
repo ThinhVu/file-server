@@ -47,13 +47,13 @@ async function main() {
     const multerOptions = {storage: multerStorageEngine}
     const uploadFileHandler = multer(multerOptions).any();
     app.get('/', (req, res) => res.send('FS'))
+    app.get('/health-check', (req, res) => res.status(204).end())
     app.get(`/${process.env.UPLOAD_PAGE}`, (req, res) => {
       const content = fs.readFileSync('./src/upload.html')
       res.setHeader('Content-Type', 'text/html; charset=UTF-8');
       res.send(content);
     })
-    app.post('/api', uploadFileHandler, (req, res) => res.send({data: req.__uploadedFileName}));
-    app.post('/api/v2/', uploadFileHandler, (req, res) => res.send(req.__uploadedFile));
+    app.post('/api', uploadFileHandler, (req, res) => res.send(req.__uploadedFile));
     app.get('/api/:fileName', async (req, res, next) => {
       const fileInfo = await fsFiles.findOne({filename: req.params.fileName})
       if (fileInfo && fileInfo.contentType)
