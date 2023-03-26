@@ -1,4 +1,4 @@
-const forkStream = require('./forkStream');
+const forkStream = require('fork-stream');
 const sharp = require('sharp');
 const {GridFSBucket} = require('mongodb');
 const _ = require('lodash');
