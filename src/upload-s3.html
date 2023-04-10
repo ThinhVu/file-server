@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js" integrity="sha512-LUKzDoJKOLqnxGWWIBM4lzRBlxcva2ZTztO8bTcWPmDSpkErWx0bSP4pdsjNH8kiHAUPaT06UXcb+vOEZH+HpQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+<div>
+  <button id="uploadBtn">Upload</button>
+  <div id="progress"></div>
+  <div id="result"></div>
+</div>
+<script>
+  let btn, progress, result;
+  let query;
+  window.addEventListener('load', function (){
+    query = parseQuery();
+    console.log(query);
+    
+    btn = document.getElementById('uploadBtn')
+    btn.addEventListener('click', upload);
+
+    progress = document.getElementById('progress');
+    result = document.getElementById('result');
+  })
+  
+  function parseQuery() {
+    return location.search.substring(1).split('&').reduce((acc, cur) => {
+      const [key, value] = cur.split('=');
+      acc[key] = value;
+      return acc;
+    }, {});
+  }
+
+  function upload() {
+    console.log('upload trigger')
+    openFileDialog({ multiple: false, mimeType: '*/*' }).then(files => {
+      console.log('files', files);
+      console.log('upload files 0');
+      uploadFile(files[0], {
+        uploadCompletedCallback: (responseData) => {
+          console.log(responseData)
+          const {data} = responseData;
+          console.log('uploadCompletedCallback', data);
+          const {filename, metadata} = data;
+          result.innerHTML = `
+<p><a href="/api/${filename}" target="_blank">File</a></p>
+${metadata.thumbnail && `<p><a href="/api/${metadata.thumbnail}" target="_blank">Thumbnail</a></p>`}
+`;
+        },
+        uploadProgressCallback: (pt) => progress.innerText = `Upload ${pt}%`
+      })
+    })
+  }
+
+  function openFileDialog(options = { multiple: false, mimeType: '*/*' }) {
+    return new Promise(resolve => {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = options.mimeType
+      input.multiple = options.multiple
+      input.addEventListener('change', e => resolve(e.target.files));
+      document.body.appendChild(input)
+      input.style.display = 'none'
+      input.click()
+      input.parentNode.removeChild(input)
+    })
+  }
+
+  async function uploadFile(file, { uploadCompletedCallback, uploadProgressCallback }) {
+    const apiKey = query.apiKey;
+    const {data} = await axios.get(`/api-s3/upload-form?filename=${file.name}&mimeType=${file.type}&apiKey=${apiKey}`);
+    const {url, fields} = data;
+    const formData = new FormData()
+    Object.keys(fields).forEach(key => formData.append(key, fields[key]));
+    formData.append('file', file)
+
+    const source = axios.CancelToken.source()
+
+    const upload = {
+      value: {
+        progress: 0,
+        inProgress: true,
+        cancel: source.cancel,
+        mimeType: file.type,
+        fileName: file.name,
+      }
+    }
+
+    function onUploadProgress(progress) {
+      const progressPercentage = Math.round(progress.loaded * 100 / progress.total);
+      upload.value.progress = progressPercentage;
+      uploadProgressCallback && uploadProgressCallback(progressPercentage);
+    }
+
+    let responseData
+    axios.post(url, formData, { cancelToken: source.token, onUploadProgress })
+    .then(async (response) => {
+      upload.value.progress = 100
+      upload.value.success = true
+      responseData = response
+    })
+    .catch(() => {
+      upload.value.progress = 0
+      upload.value.success = false
+    })
+    .finally(() => {
+      upload.value.inProgress = false
+      uploadCompletedCallback({data: `${url}/${fields.Key}` })
+    })
+    return upload
+  }
+</script>
+</body>
+</html>

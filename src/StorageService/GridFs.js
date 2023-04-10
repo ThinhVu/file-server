@@ -4,7 +4,7 @@ const {GridFSBucket} = require('mongodb');
 const _ = require('lodash');
 const path = require('path');
 
-class GridFsStorageService {
+class GridFs {
   constructor(options) {
     this.fileCollectionName = `${options.bucket}.files`;
     this.db = options.db;
@@ -84,6 +84,10 @@ class GridFsStorageService {
     return this.bucket.openDownloadStreamByName(fileName, option);
   }
 
+  async getUploadForm(fileName) {
+
+  }
+
   async getEtag(fileName) {
     const fileInfo = await this.db.collection(this.fileCollectionName).findOne({filename: fileName})
     return fileInfo.md5
@@ -95,4 +99,4 @@ class GridFsStorageService {
   }
 }
 
-module.exports = GridFsStorageService
+module.exports = GridFs

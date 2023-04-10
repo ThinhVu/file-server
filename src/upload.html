@@ -13,14 +13,27 @@
   </div>
   <script>
     let btn, progress, result;
+    let query;
     window.addEventListener('load', function (){
+      query = parseQuery();
+      console.log(query);
+      
       btn = document.getElementById('uploadBtn')
       btn.addEventListener('click', upload);
       
       progress = document.getElementById('progress');
       result = document.getElementById('result');
     })
-    
+
+    function parseQuery() {
+      return location.search.substring(1).split('&').reduce((acc, cur) => {
+        const [key, value] = cur.split('=');
+        acc[key] = value;
+        return acc;
+      }, {});
+    }
+
+
     function upload() {
       console.log('upload trigger')
       openFileDialog({ multiple: false, mimeType: '*/*' }).then(files => {
@@ -55,8 +68,13 @@ ${metadata.thumbnail && `<p><a href="/api/${metadata.thumbnail}" target="_blank"
       })
     }
     
-    function uploadFile(file, { uploadCompletedCallback, uploadProgressCallback }) {
+    async function uploadFile(file, { uploadCompletedCallback, uploadProgressCallback }) {
+      const apiKey = query.apiKey;
+      const {data} = await axios.get(`/api/upload-form?apiKey=${apiKey}`);
+      const {url, fields} = data;
+      
       const formData = new FormData()
+      Object.keys(fields).forEach(key => formData.append(key, fields[key]))
       formData.append('file', file)
 
       const source = axios.CancelToken.source()
@@ -78,7 +96,7 @@ ${metadata.thumbnail && `<p><a href="/api/${metadata.thumbnail}" target="_blank"
       }
 
       let responseData
-      axios.post('/api/v2', formData, { cancelToken: source.token, onUploadProgress })
+      axios.post(url, formData, { cancelToken: source.token, onUploadProgress })
       .then(async (response) => {
         upload.value.progress = 100
         upload.value.success = true
