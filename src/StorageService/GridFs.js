@@ -3,6 +3,7 @@ const sharp = require('sharp');
 const {GridFSBucket} = require('mongodb');
 const _ = require('lodash');
 const path = require('path');
+const {v4} = require('uuid');
 
 class GridFs {
   constructor(options) {
@@ -12,6 +13,7 @@ class GridFs {
       bucketName: options.bucket,
       chunkSizeBytes: 1024 * 128 /*128 kb*/
     });
+    this.uploadTokenKey = 'X-GridFS-Signature'
   }
 
   createFile(file) {
@@ -84,8 +86,18 @@ class GridFs {
     return this.bucket.openDownloadStreamByName(fileName, option);
   }
 
-  async getUploadForm(fileName) {
-
+  getUploadForm(originalname, mimeType) {
+    const uploadToken = v4();
+    const ext = path.extname(originalname);
+    const fileName = `${Date.now()}-${_.random(1000, 9999, false)}`;
+    const fullFileName = `${fileName}${ext}`
+    return {
+      fields: {
+        [this.uploadTokenKey]: uploadToken,
+        'Content-Type': mimeType,
+        Key: fullFileName
+      }
+    }
   }
 
   async getEtag(fileName) {

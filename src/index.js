@@ -2,7 +2,6 @@ const {createServer} = require('http');
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const _ = require('lodash');
 require('dotenv').config();
 
 process.on('uncaughtException', function (err) {
@@ -34,10 +33,12 @@ async function main() {
       const multerStorageEngine = {
         _handleFile: async (req, file, cb) => {
           try {
-            const uploadToken = req.body['X-Upload-Token']
-            if (!uploadTokens[uploadToken])
-              throw new Error("Invalid Upload token");
-            delete uploadTokens[uploadToken];
+            if (!req._bypassUploadTokenCheck) {
+              const uploadToken = req.body[gridFs.uploadTokenKey];
+              if (!uploadTokens[uploadToken])
+                throw new Error("Invalid Upload token");
+              delete uploadTokens[uploadToken];
+            }
             const uploadedFile = await gridFs.createFile(file);
             // @ts-ignore @obsolete @v1.0
             req.__uploadedFileName = uploadedFile.filename;
@@ -65,16 +66,18 @@ async function main() {
           res.status(400).send({error: "Invalid API Key"})
           return
         }
-        const uploadToken = `${Date.now()}-${_.random(1000, 9999, false)}`;
-        uploadTokens[uploadToken] = true;
-        const form = {
-          fields: {
-            'X-Upload-Token': uploadToken
-          },
-          url: `http://${req.headers.host}/api`,
-        }
-        res.send(form)
+        const uploadForm = gridFs.getUploadForm(req.query.filename, req.query.mimeType);
+        uploadForm.url = req.protocol + '://' + req.get('host') + '/api';
+        uploadForm.imageUrl = req.protocol + '://' + req.get('host') + '/api/' + uploadForm.fields.Key;
+        uploadForm.imageThumbnailUrl = req.protocol + '://' + req.get('host') + '/api/thumbnail-' + uploadForm.fields.Key;
+        res.send(uploadForm)
       });
+      app.delete('/api/:fileName', async (req, res) => {
+        await gridFs.deleteFile(req.params.fileName);
+        res.send('OK');
+      });
+
+      // self hosted
       app.post('/api', uploadFileHandler, (req, res) => res.send(req.__uploadedFile));
       app.get('/api/:fileName', async (req, res, next) => {
         const fileInfo = await fsFiles.findOne({filename: req.params.fileName})
@@ -100,10 +103,15 @@ async function main() {
         }
         file.on('error', next).pipe(res)
       });
-      app.delete('/api/:fileName', async (req, res) => {
-        await gridFs.deleteFile(req.params.fileName);
-        res.send('OK');
-      });
+
+      // COMPATIBILITY
+      if (process.env.USE_GRID_FS_COMPATIBILITY) {
+        console.log('Using GridFS Compatibility')
+        app.post('/api/v2', (req, res, next) => {
+          req._bypassUploadTokenCheck = true;
+          next();
+        }, uploadFileHandler, (req, res) => res.send(req.__uploadedFile));
+      }
     }
 
     if (process.env.USE_S3) {
@@ -133,6 +141,8 @@ async function main() {
           return;
         }
         const uploadForm = await s3.getUploadForm(req.query.filename, req.query.mimeType)
+        uploadForm.imageUrl = `${uploadForm.url}/${uploadForm.fields.Key}`;
+        uploadForm.imageThumbnailUrl = `${uploadForm.url}/thumbnail-${uploadForm.fields.Key}`;
         res.send(uploadForm);
       })
       app.delete('/api-s3/:fileName', async (req, res) => {
