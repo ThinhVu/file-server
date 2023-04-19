@@ -1,5 +1,5 @@
 {
-  "name": "orca-fs",
+  "name": "fs",
   "version": "1.0.8",
   "description": "",
   "main": "index.js",
@@ -8,15 +8,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ThinhVu/orca-fs.git"
+    "url": "git+https://github.com/ThinhVu/file-server.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ThinhVu/orca-fs/issues"
+    "url": "https://github.com/ThinhVu/file-server/issues"
   },
-  "homepage": "https://github.com/ThinhVu/orca-fs#readme",
+  "homepage": "https://github.com/ThinhVu/file-server#readme",
   "dependencies": {
     "aws-sdk": "^2.1343.0",
     "cors": "^2.8.5",

@@ -1,13 +1,8 @@
 FROM node:14-alpine
-
 WORKDIR /app
-
 COPY package* ./
-
-RUN npm ci
-
-COPY ./src ./src
-
+COPY yarn.lock ./
 ENV NODE_ENV=production
-
-ENTRYPOINT ["node", "src/index.js"]
+RUN yarn
+COPY ./src ./src
+ENTRYPOINT ["/bin/sh", "-c" , "yarn && node ./src/index.js"]
