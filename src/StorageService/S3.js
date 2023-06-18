@@ -21,6 +21,7 @@ class S3 {
       useAccelerateEndpoint: false,
       s3ForcePathStyle: true,
       apiVersion: '2006-03-01',
+      // signatureVersion: 'v4', // cloudflare https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js/#generate-presigned-urls
     });
   }
   getUploadForm(originalname, mimeType) {

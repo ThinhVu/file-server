@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Title</title>
+  <title>GridFs Upload</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js" integrity="sha512-LUKzDoJKOLqnxGWWIBM4lzRBlxcva2ZTztO8bTcWPmDSpkErWx0bSP4pdsjNH8kiHAUPaT06UXcb+vOEZH+HpQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
             const {filename, metadata} = data;
             result.innerHTML = `
 <p><a href="/api/${filename}" target="_blank">File</a></p>
-${metadata.thumbnail && `<p><a href="/api/${metadata.thumbnail}" target="_blank">Thumbnail</a></p>`}
+${metadata.thumbnail ? `<p><a href="/api/${metadata.thumbnail}" target="_blank">Thumbnail</a></p>` : ''}
 `;
           },
           uploadProgressCallback: (pt) => progress.innerText = `Upload ${pt}%`

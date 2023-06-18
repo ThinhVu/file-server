@@ -119,13 +119,13 @@ async function main() {
       const S3 = require('./StorageService/S3');
       const config = {
         credentialConfig: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-          region: process.env.AWS_REGION || undefined,
-          endpoint: process.env.AWS_ENDPOINT || undefined
+          accessKeyId: process.env.S3_ACCESS_KEY_ID,
+          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+          region: process.env.S3_REGION || undefined,
+          endpoint: process.env.S3_ENDPOINT || undefined
         },
         storageConfig: {
-          bucket: process.env.AWS_BUCKET,
+          bucket: process.env.S3_BUCKET,
           expiryTime: 0
         }
       };
