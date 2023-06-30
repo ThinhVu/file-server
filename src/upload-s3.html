@@ -33,25 +33,20 @@
     }, {});
   }
 
-  function upload() {
+  async function upload() {
     console.log('upload trigger')
-    openFileDialog({ multiple: false, mimeType: '*/*' }).then(files => {
-      console.log('files', files);
-      console.log('upload files 0');
-      uploadFile(files[0], {
-        uploadCompletedCallback: (responseData) => {
-          console.log(responseData)
-          const {data} = responseData;
-          console.log('uploadCompletedCallback', data);
-          const {filename, metadata} = data;
-          result.innerHTML = `
-<p><a href="/api/${filename}" target="_blank">File</a></p>
-${metadata.thumbnail && `<p><a href="/api/${metadata.thumbnail}" target="_blank">Thumbnail</a></p>`}
-`;
-        },
-        uploadProgressCallback: (pt) => progress.innerText = `Upload ${pt}%`
-      })
-    })
+    const files = await openFileDialog({ multiple: false, mimeType: '*/*' });
+    console.log('files', files);
+    console.log('upload files 0');
+    try {
+      const responseData = await uploadFile(files[0], {uploadProgressCallback: (pt) => progress.innerText = `Upload ${pt}%`})
+      const {data} = responseData
+      console.log('uploadCompletedCallback', data)
+      result.innerHTML = `<p><a href="${data}" target="_blank">${data}</a></p>`
+    } catch (e) {
+      result.innerHTML = `<p>Upload failed with error ${e.message}</p>`
+      console.error(e)
+    }
   }
 
   function openFileDialog(options = { multiple: false, mimeType: '*/*' }) {
@@ -68,48 +63,22 @@ ${metadata.thumbnail && `<p><a href="/api/${metadata.thumbnail}" target="_blank"
     })
   }
 
-  async function uploadFile(file, { uploadCompletedCallback, uploadProgressCallback }) {
+  async function uploadFile(file, {uploadProgressCallback}) {
     const apiKey = query.apiKey;
+    console.log('[uploadFile] getting presigned post')
     const {data} = await axios.get(`/api-s3/upload-form?filename=${file.name}&mimeType=${file.type}&apiKey=${apiKey}`);
+    console.log('[uploadFile] presigned post returned. upload begin')
     const {url, fields} = data;
+    console.log('[uploadFile] presigned post data', data);
     const formData = new FormData()
     Object.keys(fields).forEach(key => formData.append(key, fields[key]));
     formData.append('file', file)
-
-    const source = axios.CancelToken.source()
-
-    const upload = {
-      value: {
-        progress: 0,
-        inProgress: true,
-        cancel: source.cancel,
-        mimeType: file.type,
-        fileName: file.name,
-      }
-    }
-
     function onUploadProgress(progress) {
       const progressPercentage = Math.round(progress.loaded * 100 / progress.total);
-      upload.value.progress = progressPercentage;
       uploadProgressCallback && uploadProgressCallback(progressPercentage);
     }
-
-    let responseData
-    axios.post(url, formData, { cancelToken: source.token, onUploadProgress })
-    .then(async (response) => {
-      upload.value.progress = 100
-      upload.value.success = true
-      responseData = response
-    })
-    .catch(() => {
-      upload.value.progress = 0
-      upload.value.success = false
-    })
-    .finally(() => {
-      upload.value.inProgress = false
-      uploadCompletedCallback({data: `${url}/${fields.Key}` })
-    })
-    return upload
+    const source = axios.CancelToken.source()
+    return axios.post(url, formData, { cancelToken: source.token, headers: {"Content-Type": "multipart/form-data"}, onUploadProgress })
   }
 </script>
 </body>
