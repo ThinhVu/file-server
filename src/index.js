@@ -35,8 +35,10 @@ async function main() {
           try {
             if (!req._bypassUploadTokenCheck) {
               const uploadToken = req.body[gridFs.uploadTokenKey];
-              if (!uploadTokens[uploadToken])
-                throw new Error("Invalid Upload token");
+              if (!uploadTokens[uploadToken]) {
+                cb(new Error("Invalid Upload token"));
+                return
+              }
               delete uploadTokens[uploadToken];
             }
             const uploadedFile = await gridFs.createFile(file);
