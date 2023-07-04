@@ -158,7 +158,7 @@ async function main() {
 
     const httpServer = createServer(app);
     const PORT = process.env.PORT || process.env.API_PORT || 8081;
-    httpServer.listen({port: PORT}, () => console.log(`httpServer ready at port ${PORT}`));
+    httpServer.listen({port: PORT}, () => console.log(`httpServer ready at http://localhost:${PORT}`));
   } catch (e) {
     console.error(e);
   }
