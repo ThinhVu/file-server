@@ -128,7 +128,7 @@ async function main() {
         },
         storageConfig: {
           bucket: process.env.S3_BUCKET,
-          expiryTime: 0
+          expiryTime: +process.env.S3_EXPIRY_TIME || 0
         }
       };
       const s3 = new S3(config)
