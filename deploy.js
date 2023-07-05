@@ -1,7 +1,7 @@
 const child_process = require('child_process');
 const packageJson = require('./package.json');
 
-const DOCKER_REGISTRY = 'registry.tvux.me';
+const DOCKER_REGISTRY = 'registry.vuxify.com';
 const {name, version} = packageJson;
 const buildVersion = `${version}.${Date.now()}`;
 const imageTag = `${DOCKER_REGISTRY}/${name}:${buildVersion}`;
