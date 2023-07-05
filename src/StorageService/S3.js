@@ -23,7 +23,7 @@ class S3 {
       apiVersion: '2006-03-01',
     })
   }
-  getUploadForm(originalname, mimeType) {
+  getUploadForm({folder, originalname, mimeType}) {
     return new Promise((resolve, reject) => {
       const ext = path.extname(originalname);
       const fileName = `${Date.now()}-${_.random(1000, 9999, false)}`;
@@ -33,7 +33,7 @@ class S3 {
         Bucket: this.storageConfig.bucket,
         Expires: this.storageConfig.expiryTime,
         Fields: {
-          Key: fullFileName,
+          Key: folder ? `${folder}/${fullFileName}` : fullFileName,
           'Content-Type': mimeType
         }
       }

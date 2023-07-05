@@ -142,7 +142,11 @@ async function main() {
           res.status(400).send({error: "Invalid API Key"});
           return;
         }
-        const uploadForm = await s3.getUploadForm(req.query.filename, req.query.mimeType)
+        const uploadForm = await s3.getUploadForm({
+          folder: req.query.folder || '',
+          originalname: req.query.filename,
+          mimeType: req.query.mimeType
+        })
         uploadForm.imageUrl = `${uploadForm.url}/${uploadForm.fields.Key}`;
         // uploadForm.imageThumbnailUrl = `${uploadForm.url}/thumbnail-${uploadForm.fields.Key}`;
         res.send(uploadForm);
