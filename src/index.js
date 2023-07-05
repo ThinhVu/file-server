@@ -144,7 +144,7 @@ async function main() {
         }
         const uploadForm = await s3.getUploadForm(req.query.filename, req.query.mimeType)
         uploadForm.imageUrl = `${uploadForm.url}/${uploadForm.fields.Key}`;
-        uploadForm.imageThumbnailUrl = `${uploadForm.url}/thumbnail-${uploadForm.fields.Key}`;
+        // uploadForm.imageThumbnailUrl = `${uploadForm.url}/thumbnail-${uploadForm.fields.Key}`;
         res.send(uploadForm);
       })
       app.delete('/api-s3/:fileName', async (req, res) => {
