@@ -147,7 +147,11 @@ async function main() {
           originalname: req.query.filename,
           mimeType: req.query.mimeType
         })
-        uploadForm.imageUrl = `${uploadForm.url}/${uploadForm.fields.Key}`;
+        if (process.env.S3_BUCKET_CDN_AVAILABLE) {
+          uploadForm.imageUrl = `${process.env.S3_BUCKET}/${uploadForm.fields.Key}`;
+        } else {
+          uploadForm.imageUrl = `${uploadForm.url}/${uploadForm.fields.Key}`;
+        }
         // uploadForm.imageThumbnailUrl = `${uploadForm.url}/thumbnail-${uploadForm.fields.Key}`;
         res.send(uploadForm);
       })
